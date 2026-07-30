@@ -53,16 +53,10 @@ export async function POST(request: Request) {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
 
-      const allKeys = await db.select().from(apiKeys).execute();
-      const bcrypt = require('bcryptjs');
+      const crypto = require('crypto');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-      let matchedKey = null;
-      for (const k of allKeys) {
-        if (await bcrypt.compare(token, k.token)) {
-          matchedKey = k;
-          break;
-        }
-      }
+      const matchedKey = await db.select().from(apiKeys).where(eq(apiKeys.token, tokenHash)).get();
 
       if (!matchedKey) {
         return NextResponse.json({ error: 'Invalid API Token' }, { status: 401 });
@@ -109,3 +103,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create bookmark' }, { status: 500 });
   }
 }
+export const runtime = "nodejs";

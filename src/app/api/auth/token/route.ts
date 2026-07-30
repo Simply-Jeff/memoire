@@ -21,8 +21,9 @@ export async function POST(request: Request) {
     // Generate a secure random token
     const token = `memo_${crypto.randomBytes(32).toString('hex')}`;
 
-    // Hash it for storage
-    const tokenHash = await bcrypt.hash(token, 10);
+    // DO NOT use bcrypt for api tokens as they are highly randomized.
+    // Instead use a fast hash like sha256 to store them securely.
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
     const newKey = await db.insert(apiKeys).values({
       name,

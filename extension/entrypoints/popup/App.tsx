@@ -27,7 +27,9 @@ function App() {
 
       if (!currentTab?.url) throw new Error("No URL found");
 
-      const res = await fetch("http://localhost:3000/api/bookmarks", {
+      const apiUrl = process.env.WXT_PUBLIC_API_URL || "http://localhost:3000/api/bookmarks";
+
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -10,7 +10,7 @@ import { JSDOM } from "jsdom";
 import fs from "fs";
 import path from "path";
 
-const connection = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+const connection = new Redis(process.env.REDIS_URL || "redis://localhost:6379", { maxRetriesPerRequest: null, enableReadyCheck: false });//const connection = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 const ARCHIVE_DIR = path.join(PUBLIC_DIR, "archives");
