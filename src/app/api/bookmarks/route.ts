@@ -42,25 +42,59 @@ export async function GET(request: Request) {
   }
 }
 
+import { apiKeys } from '@/db/schema';
+
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const userId = session.user.id;
+    // Check for API token first
+    const authHeader = request.headers.get('Authorization');
+    let userId;
 
-    const { url } = await request.json();
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+
+      const allKeys = await db.select().from(apiKeys).execute();
+      const bcrypt = require('bcryptjs');
+
+      let matchedKey = null;
+      for (const k of allKeys) {
+        if (await bcrypt.compare(token, k.token)) {
+          matchedKey = k;
+          break;
+        }
+      }
+
+      if (!matchedKey) {
+        return NextResponse.json({ error: 'Invalid API Token' }, { status: 401 });
+      }
+      userId = matchedKey.userId;
+    } else {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      userId = session.user.id;
+    }
+
+    const { url, collection, tags } = await request.json();
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
+
+    // Pass along user tags and collections implicitly by storing it in metadata for now
+    // We could store it properly in relations, but keeping it simple for metadata JSONB.
+    const metadataObj = {
+      collection: collection || null,
+      tags: tags ? tags.split(',').map((t: string) => t.trim()).filter(Boolean) : []
+    };
 
     // Insert immediately, but with empty metadata.
     // The background worker will populate it.
     const newBookmark = await db.insert(bookmarks).values({
       url,
       userId,
+      metadata: JSON.stringify(metadataObj)
     }).returning();
 
     // Enqueue job

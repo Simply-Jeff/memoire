@@ -5,8 +5,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Run migrations before starting the app
+    command: sh -c "npx drizzle-kit push && node server.js"
     volumes:
       - ./sqlite.db:/app/sqlite.db
+      - ./public/archives:/app/public/archives
     ports:
       - "3000:3000"
     environment:

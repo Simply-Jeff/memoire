@@ -33,11 +33,25 @@ async function extractMetadata(url: string) {
     const title = $('meta[property="og:title"]').attr('content') || $('title').text() || '';
     const description = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '';
     const imageUrl = $('meta[property="og:image"]').attr('content') || '';
+    const ogType = $('meta[property="og:type"]').attr('content') || '';
 
-    return { title, description, imageUrl };
+    let contentType = 'link';
+    if (url.includes('youtube.com') || url.includes('youtu.be') || ogType.includes('video')) {
+      contentType = 'video';
+    } else if (url.includes('twitter.com') || url.includes('x.com')) {
+      contentType = 'twitter';
+    } else if (url.includes('amazon.com') || ogType.includes('product')) {
+      contentType = 'product';
+    } else if (imageUrl.length > 0 && html.includes('<article')) {
+      contentType = 'article';
+    } else if (url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) != null) {
+      contentType = 'image';
+    }
+
+    return { title, description, imageUrl, contentType };
   } catch (e) {
     console.error("Failed to extract metadata for URL:", url, e);
-    return { title: "", description: "", imageUrl: "" };
+    return { title: "", description: "", imageUrl: "", contentType: "link" };
   }
 }
 
@@ -47,10 +61,10 @@ export const worker = new Worker("bookmark-metadata", async (job) => {
   console.log(`Processing metadata extraction for bookmark ${bookmarkId} (${url})`);
 
   // 1. HTTP Extract
-  const { title, description, imageUrl } = await extractMetadata(url);
+  const { title, description, imageUrl, contentType } = await extractMetadata(url);
 
   await db.update(bookmarks)
-    .set({ title, description, imageUrl })
+    .set({ title, description, imageUrl, contentType })
     .where(eq(bookmarks.id, bookmarkId));
 
   // 2. Puppeteer Archiving

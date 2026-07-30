@@ -60,6 +60,7 @@ export const bookmarks = sqliteTable('bookmarks', {
   title: text('title'),
   description: text('description'),
   imageUrl: text('image_url'),
+  contentType: text('content_type').default('link'), // 'link', 'article', 'video', 'image', 'product', 'twitter'
   metadata: text('metadata').default('{}'),
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
@@ -69,6 +70,14 @@ export const bookmarkArchives = sqliteTable('bookmark_archives', {
   bookmarkId: integer('bookmark_id').notNull().references(() => bookmarks.id, { onDelete: "cascade" }),
   format: text('format').notNull(), // 'screenshot', 'pdf', 'readable'
   filePath: text('file_path').notNull(),
+  createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
+});
+
+export const apiKeys = sqliteTable('api_keys', {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text('name').notNull(),
+  token: text('token').notNull().unique(), // Hashed/encrypted in production, plain for simplicity now
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 

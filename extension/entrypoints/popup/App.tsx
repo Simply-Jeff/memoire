@@ -1,34 +1,76 @@
-import { useState } from 'react';
-import reactLogo from '@/assets/react.svg';
-import wxtLogo from '/wxt.svg';
+import { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [token, setToken] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    browser.storage.local.get("apiToken").then((res) => {
+      if (res.apiToken) setToken(res.apiToken);
+    });
+  }, []);
+
+  const saveToken = () => {
+    browser.storage.local.set({ apiToken: token });
+    setStatus("Token saved.");
+    setTimeout(() => setStatus(""), 2000);
+  };
+
+  const saveCurrentPage = async () => {
+    setLoading(true);
+    setStatus("");
+    try {
+      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+      const currentTab = tabs[0];
+
+      if (!currentTab?.url) throw new Error("No URL found");
+
+      const res = await fetch("http://localhost:3000/api/bookmarks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ url: currentTab.url })
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      setStatus("Bookmark saved!");
+    } catch (e: any) {
+      setStatus(`Failed: ${e.message}`);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setStatus(""), 2000);
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://wxt.dev" target="_blank">
-          <img src={wxtLogo} className="logo" alt="WXT logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div style={{ padding: "1rem", minWidth: "300px" }}>
+      <h2>memoire extension</h2>
+      <div style={{ marginBottom: "1rem" }}>
+        <input
+          type="password"
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder="API Token from Dashboard"
+          style={{ width: "100%", padding: "0.5rem", marginBottom: "0.5rem" }}
+        />
+        <button onClick={saveToken} style={{ width: "100%" }}>Save Token</button>
       </div>
-      <h1>WXT + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the WXT and React logos to learn more
-      </p>
-    </>
+      <button
+        onClick={saveCurrentPage}
+        disabled={loading || !token}
+        style={{ width: "100%", padding: "1rem", background: "#000", color: "#fff" }}
+      >
+        {loading ? "Saving..." : "Save Current Tab"}
+      </button>
+      {status && <p style={{ marginTop: "1rem", fontSize: "0.875rem" }}>{status}</p>}
+    </div>
   );
 }
 

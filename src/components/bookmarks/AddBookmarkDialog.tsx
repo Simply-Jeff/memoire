@@ -19,12 +19,14 @@ export function AddBookmarkDialog() {
 
     const formData = new FormData(e.currentTarget);
     const url = formData.get("url") as string;
+    const collection = formData.get("collection") as string;
+    const tags = formData.get("tags") as string;
 
     try {
       const res = await fetch("/api/bookmarks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, collection, tags }),
       });
 
       if (!res.ok) {
@@ -56,9 +58,18 @@ export function AddBookmarkDialog() {
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="space-y-2">
+            <label htmlFor="url" className="text-sm font-medium">URL</label>
             <Input type="url" name="url" placeholder="https://example.com" required autoFocus />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="space-y-2">
+            <label htmlFor="collection" className="text-sm font-medium">Collection (Optional)</label>
+            <Input type="text" name="collection" placeholder="e.g. Design Inspiration" />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="tags" className="text-sm font-medium">Tags (Optional, comma separated)</label>
+            <Input type="text" name="tags" placeholder="e.g. UI, dark mode, nextjs" />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Cancel
             </Button>

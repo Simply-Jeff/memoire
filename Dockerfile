@@ -27,6 +27,9 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
+# Install chromium and dependencies for Puppeteer in the final image
+RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
+
 ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -45,8 +48,17 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# We also need the source files for the worker, ws server, and drizzle-kit pushes
+COPY --from=builder --chown=nextjs:nodejs /app/src ./src
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
 # Copy sqlite db if we are using it
 COPY --from=builder --chown=nextjs:nodejs /app/sqlite.db* ./
+
+# Ensure sqlite.db exists and has correct permissions
+RUN touch ./sqlite.db && chown nextjs:nodejs ./sqlite.db
 
 USER nextjs
 
