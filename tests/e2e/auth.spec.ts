@@ -32,9 +32,9 @@ test.describe('Authentication and Bookmarks Flow', () => {
     await expect(page.locator('h1')).toContainText('Everything');
 
     // 3. Add Bookmark
-    // Open dialog
-    await page.click('button:has(.lucide-plus)');
-    await expect(page.locator('h2')).toContainText('Save a Bookmark');
+    // Open dialog (it might be the floating action button or from the onboarding wizard, we just locate the FAB or dialog properly)
+    await page.click('button[data-slot="dialog-trigger"]:has(.lucide-plus)');
+    await expect(page.locator('h2').filter({ hasText: 'Save a Bookmark' })).toBeVisible();
 
     // Fill in bookmark details
     const targetUrl = 'https://example.com';
@@ -54,8 +54,8 @@ test.describe('Authentication and Bookmarks Flow', () => {
     } else {
       // Need a hard refresh since websocket mock doesn't re-trigger inside the headless test runner correctly yet
       await page.reload();
-      // Verify bookmark card appears in the grid
-      await expect(page.locator('a', { hasText: 'example.com' }).first()).toBeVisible({ timeout: 10000 });
+      // Verify bookmark card appears in the grid.
+      await expect(page.locator('div.group.relative.overflow-hidden', { hasText: 'example.com' }).first()).toBeVisible({ timeout: 10000 });
     }
   });
 });

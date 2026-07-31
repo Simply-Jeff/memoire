@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { eq, like, or } from 'drizzle-orm';
-import { bookmarks } from '@/db/schema';
+import { eq, like, or, and, desc } from 'drizzle-orm';
+import { bookmarks, apiKeys } from '@/db/schema';
 import { enqueueMetadataExtraction } from '@/lib/queue';
+import crypto from 'crypto';
 
 import { auth } from "@/auth";
 
@@ -19,20 +20,22 @@ export async function GET(request: Request) {
     let allBookmarks;
     if (query) {
       const searchPattern = `%${query}%`;
-
-      // In-memory filter as fallback to proper Drizzle AND/OR nesting for SQLite
-      const userBookmarks = await db.select()
-      .from(bookmarks)
-      .where(eq(bookmarks.userId, session.user.id))
-      .execute();
-
-      allBookmarks = userBookmarks.filter(b =>
-        (b.title && b.title.toLowerCase().includes(query.toLowerCase())) ||
-        (b.description && b.description.toLowerCase().includes(query.toLowerCase())) ||
-        b.url.toLowerCase().includes(query.toLowerCase())
-      );
+      allBookmarks = await db.select()
+        .from(bookmarks)
+        .where(
+          and(
+            eq(bookmarks.userId, session.user.id),
+            or(
+              like(bookmarks.title, searchPattern),
+              like(bookmarks.description, searchPattern),
+              like(bookmarks.url, searchPattern)
+            )
+          )
+        )
+        .orderBy(bookmarks.sortOrder, desc(bookmarks.createdAt))
+        .execute();
     } else {
-      allBookmarks = await db.select().from(bookmarks).where(eq(bookmarks.userId, session.user.id)).execute();
+      allBookmarks = await db.select().from(bookmarks).where(eq(bookmarks.userId, session.user.id)).orderBy(bookmarks.sortOrder, desc(bookmarks.createdAt)).execute();
     }
 
     return NextResponse.json(allBookmarks);
@@ -42,7 +45,6 @@ export async function GET(request: Request) {
   }
 }
 
-import { apiKeys } from '@/db/schema';
 
 export async function POST(request: Request) {
   try {
@@ -53,7 +55,6 @@ export async function POST(request: Request) {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
 
-      const crypto = require('crypto');
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
       const matchedKey = await db.select().from(apiKeys).where(eq(apiKeys.token, tokenHash)).get();
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
     }).returning();
 
     // Enqueue job
-    await enqueueMetadataExtraction(url, newBookmark[0].id);
+    await enqueueMetadataExtraction(url, newBookmark[0].id, userId);
 
     // If we have an existing WebSocket client or logic, we can broadcast here.
     // For simplicity, relying on polling or external push.

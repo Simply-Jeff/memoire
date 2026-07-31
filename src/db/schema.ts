@@ -62,6 +62,7 @@ export const bookmarks = sqliteTable('bookmarks', {
   imageUrl: text('image_url'),
   contentType: text('content_type').default('link'), // 'link', 'article', 'video', 'image', 'product', 'twitter'
   metadata: text('metadata').default('{}'),
+  sortOrder: integer('sort_order').default(0), // used for drag and drop reordering
   createdAt: text('created_at').notNull().default('CURRENT_TIMESTAMP'),
 });
 

@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation"
 import { auth } from "@/auth"
 import fs from "fs"
 import path from "path"
+import DOMPurify from 'isomorphic-dompurify';
 
 export default async function ReaderMode({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -56,12 +57,14 @@ export default async function ReaderMode({ params }: { params: Promise<{ id: str
     )
   }
 
+  const cleanHtml = DOMPurify.sanitize(content);
+
   return (
     <article className="prose prose-lg dark:prose-invert mx-auto py-8">
       <h1>{bookmark.title || "Untitled Article"}</h1>
       {bookmark.url && <a href={bookmark.url} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground no-underline hover:underline">Original Source</a>}
       <hr className="my-8" />
-      <div dangerouslySetInnerHTML={{ __html: content }} />
+      <div dangerouslySetInnerHTML={{ __html: cleanHtml }} />
     </article>
   )
 }

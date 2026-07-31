@@ -18,7 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'AUTH_URL=http://localhost:3000 AUTH_SECRET=falskjdfalskdjfaslkdjflkasdjf AUTH_TRUST_HOST=true NEXT_PUBLIC_WS_URL=ws://localhost:8080 npm run dev -- --webpack',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
   },

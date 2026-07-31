@@ -21,6 +21,21 @@ services:
       - redis
     restart: unless-stopped
 
+  checker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["npx", "tsx", "src/lib/checker.ts"]
+    volumes:
+      - ./sqlite.db:/app/sqlite.db
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SECRET=falskjdfalskdjfaslkdjflkasdjf
+    depends_on:
+      - redis
+    restart: unless-stopped
+
   worker:
     build:
       context: .

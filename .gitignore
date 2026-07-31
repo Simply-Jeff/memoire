@@ -40,3 +40,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.db
+
+# Temporary testing
+test-api.js
+test-api-login.js
+test-card.tsx
+playwright-report/
+test-results/
+dev.log
